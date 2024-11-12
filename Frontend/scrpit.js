@@ -1,8 +1,8 @@
 document.getElementById("imageForm").addEventListener("submit", function(e) {
     e.preventDefault();
     const prompt = document.getElementById("prompt").value;
-
-    fetch("/generate-image", {
+    const API_URL = "http://localhost:3000/generate-image"
+    fetch(API_URL, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
