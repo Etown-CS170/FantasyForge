@@ -1,10 +1,10 @@
-require('dotenv').config();
+// require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const fetch = require('node-fetch'); 
 const path = require('path');
-const fs = require('fs');
-const { parseJSON, searchDatabase } = require('./rag-utils'); // Assuming you have helper functions in rag-utils.js
+// const fs = require('fs');
+// const { parseJSON, searchDatabase } = require('./rag-utils'); // Assuming you have helper functions in rag-utils.js
 
 const app = express();
 const port = 3000;
@@ -19,9 +19,9 @@ const upload = multer({ dest: 'uploads/' });
 // Endpoint for generating images
 app.post('/generate-image', async (req, res) => {
     const { prompt } = req.body;
-    const relevantData = searchDatabase(prompt);
-    const augmentedPrompt = `${prompt} with context: ${relevantData}`;
-
+    // const relevantData = searchDatabase(prompt);
+    // const augmentedPrompt = `${prompt} with context: ${relevantData}`;
+    const augmentedPrompt = prompt;
     try {
         const response = await fetch("https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large", {
             method: 'POST',
