@@ -1,95 +1,54 @@
-const http = require('http');
-const fs = require('fs');
+require('dotenv').config();
+const express = require('express');
+const multer = require('multer');
+const fetch = require('node-fetch'); 
 const path = require('path');
-const url = require('url');
-const { parseJSON, searchDatabase } = require('./rag-utils');
+const fs = require('fs');
+const { parseJSON, searchDatabase } = require('./rag-utils'); // Assuming you have helper functions in rag-utils.js
 
-// Load environment variables manually
-const env = {};
-fs.readFileSync(path.join(__dirname, '.env'), 'utf-8')
-    .split('\n')
-    .forEach(line => {
-        const [key, value] = line.split('=');
-        if (key && value) env[key.trim()] = value.trim();
-    });
-
-const apiKey = env.HF_API_KEY;  // API key loaded from .env file
+const app = express();
 const port = 3000;
+const apiKey = process.env.HF_API_Key; 
 
-// Utility function for parsing multipart/form-data
-function parseMultipartFormData(req, callback) {
-    const boundary = req.headers['content-type'].split('; ')[1].replace('boundary=', '');
-    let body = Buffer.alloc(0);
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-    req.on('data', (chunk) => {
-        body = Buffer.concat([body, chunk]);
-    });
+// Configure multer for file uploads
+const upload = multer({ dest: 'uploads/' });
 
-    req.on('end', () => {
-        const parts = body.toString().split(`--${boundary}`).slice(1, -1);
-        const fileData = parts.find(part => part.includes('Content-Type')).split('\r\n\r\n')[1].trim();
-        callback(fileData);
-    });
-}
+// Endpoint for generating images
+app.post('/generate-image', async (req, res) => {
+    const { prompt } = req.body;
+    const relevantData = searchDatabase(prompt);
+    const augmentedPrompt = `${prompt} with context: ${relevantData}`;
 
-// Create HTTP server
-const server = http.createServer((req, res) => {
-    const parsedUrl = url.parse(req.url, true);
-
-    // Serve static HTML file
-    if (req.method === 'GET' && parsedUrl.pathname === '/') {
-        fs.readFile(path.join(__dirname, 'public', 'index.html'), (err, data) => {
-            if (err) {
-                res.writeHead(500, { 'Content-Type': 'text/plain' });
-                res.end('Error loading index.html');
-            } else {
-                res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(data);
-            }
-        });
-    }
-
-    // Handle database upload (only JSON files in this version)
-    else if (req.method === 'POST' && parsedUrl.pathname === '/upload-database') {
-        parseMultipartFormData(req, (fileData) => {
-            try {
-                const data = parseJSON(fileData);
-                res.writeHead(200, { 'Content-Type': 'text/plain' });
-                res.end('Database uploaded successfully');
-            } catch (err) {
-                res.writeHead(400, { 'Content-Type': 'text/plain' });
-                res.end('Error parsing database');
-            }
-        });
-    }
-
-    // Handle image generation request
-    else if (req.method === 'POST' && parsedUrl.pathname === '/generate-image') {
-        let body = '';
-        req.on('data', chunk => {
-            body += chunk.toString();
+    try {
+        const response = await fetch("https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                prompt: augmentedPrompt,
+                n: 1, // Number of images to generate, if supported
+                size: "1024x1024" // Specify size if supported by API
+            })
         });
 
-        req.on('end', () => {
-            const { prompt } = JSON.parse(body);
-            const relevantData = searchDatabase(prompt);
-            const augmentedPrompt = `${prompt} with context: ${relevantData}`;
+        if (!response.ok) throw new Error(`API call failed: ${response.statusText}`);
+        
+        const data = await response.json();
+        const imageUrl = data.generated_images[0]; // Adjust this path based on API response
 
-            // Simulate an API call using the loaded API key
-            const responseMessage = `Generated image for prompt: "${augmentedPrompt}" using API key: ${apiKey}`;
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: responseMessage, image_url: 'placeholder_image_url.png' }));
-        });
-    }
-
-    // 404 for unsupported routes
-    else {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('Not Found');
+        // Send the generated image URL to the frontend
+        res.status(200).json({ message: `Generated image for prompt: "${augmentedPrompt}"`, image_url: imageUrl });
+    } catch (error) {
+        console.error('Error generating image:', error);
+        res.status(500).json({ message: 'Error generating image' });
     }
 });
 
-server.listen(port, () => {
+app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
