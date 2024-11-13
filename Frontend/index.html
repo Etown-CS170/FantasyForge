@@ -3,68 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Image Generator</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Image Generator</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>AI Image Generator with Simple Upload</h1>
-    
-    <!-- Form to upload JSON database -->
-    <form id="uploadForm">
-        <input type="file" id="database" accept=".json" required>
-        <button type="submit">Upload Database</button>
-    </form>
-
-    <!-- Form to input the image generation prompt -->
-    <form id="imageForm">
-        <input type="text" id="prompt" placeholder="Enter a prompt..." required>
-        <button type="submit">Generate Image</button>
-    </form>
-
-    <!-- Image container to hold the generated image or placeholder text -->
-    <div id="imageContainer">
-        <p>Generated image info will appear here...</p>
+    <div class="container">
+        <h1>Image Generator</h1>
+        <input type="text" id="promptInput" placeholder="Enter your prompt">
+        <button onclick="generateImage()">Generate Image</button>
+        <div id="loading" style="display: none;">
+            Generating image... This may take a few minutes.
+        </div>
+        <div id="imageContainer"></div>
     </div>
-
-    <script>
-        document.getElementById("uploadForm").addEventListener("submit", function(e) {
-            e.preventDefault();
-            const fileInput = document.getElementById("database");
-            const formData = new FormData();
-            formData.append("database", fileInput.files[0]);
-
-            fetch("/upload-database", {
-                method: "POST",
-                body: formData
-            }).then(response => {
-                if (response.ok) {
-                    alert("Database uploaded successfully!");
-                } else {
-                    alert("Error uploading database.");
-                }
-            }).catch(error => {
-                console.error("Error:", error);
-            });
-        });
-
-        document.getElementById("imageForm").addEventListener("submit", function(e) {
-            e.preventDefault();
-            const prompt = document.getElementById("prompt").value;
-
-            fetch("/generate-image", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ prompt: prompt })
-            }).then(response => response.json())
-            .then(data => {
-                const imageContainer = document.getElementById("imageContainer");
-                imageContainer.innerHTML = `<p>${data.message}</p><img src="${data.image_url}" alt="Generated Image">`;
-            }).catch(error => {
-                console.error("Error:", error);
-            });
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>

@@ -1,56 +1,163 @@
-// require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const fetch = require('node-fetch'); 
 const path = require('path');
-// const fs = require('fs');
-// const { parseJSON, searchDatabase } = require('./rag-utils'); // Assuming you have helper functions in rag-utils.js
+const cors = require('cors');
+const dbManager = require('./databases/databaseManager');
 
 const app = express();
 const port = 3000;
-const apiKey = process.env.HF_API_Key; 
+const apiKey = process.env.HF_API_KEY;
+if (!apiKey) {
+    console.error('ERROR: HF_API_KEY is not set in .env file');
+    process.exit(1);
+}
 
+// Middleware
+app.use(cors());
 app.use(express.json());
+
+// Debug logging middleware
+app.use((req, res, next) => {
+    console.log(`${req.method} request to ${req.url}`);
+    next();
+});
+
+// Serve static files from Frontend directory
 app.use(express.static(path.join(__dirname, 'Frontend')));
+
+// Root route
+app.get('/', (req, res) => {
+    const indexPath = path.join(__dirname, 'Frontend', 'index.html');
+    console.log('Serving index.html from:', indexPath);
+    res.sendFile(indexPath);
+});
+
+// Catch-all route to redirect back to index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'Frontend', 'index.html'));
+});
 
 // Configure multer for file uploads
 const upload = multer({ dest: 'uploads/' });
 
-// Endpoint for generating images
-app.post('/generate-image', async (req, res) => {
-    console.log(req);
-    const { prompt } = req.body;
-    // const relevantData = searchDatabase(prompt);
-    // const augmentedPrompt = `${prompt} with context: ${relevantData}`;
-    const augmentedPrompt = prompt;
-    console.log(augmentedPrompt);
-    try {
-        const response = await fetch("https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large", {
-            method: 'POST',
+// Add model loading status check
+async function query(data) {
+    const response = await fetch(
+        "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+        {
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
+                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                prompt: augmentedPrompt,
-                n: 1, // Number of images to generate, if supported
-                size: "1024x1024" // Specify size if supported by API
-            })
+            method: "POST",
+            body: JSON.stringify(data),
+        }
+    );
+    const result = await response.blob();
+    return result;
+}
+
+// Add status check endpoint
+app.get('/api/status', async (req, res) => {
+    try {
+        const response = await fetch(
+            "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+            {
+                headers: { Authorization: `Bearer ${apiKey}` },
+                method: "GET"
+            }
+        );
+        const result = await response.json();
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to check model status" });
+    }
+});
+
+// Get all categories
+app.get('/api/categories', (req, res) => {
+    res.json(dbManager.getCategories());
+});
+
+// Get subcategories for a category
+app.get('/api/categories/:category', (req, res) => {
+    const subcategories = dbManager.getSubcategories(req.params.category);
+    res.json(subcategories);
+});
+
+// Search endpoint
+app.get('/api/search', (req, res) => {
+    const { q, category } = req.query;
+    const results = dbManager.search(q, category);
+    res.json(results);
+});
+
+// Update the image generation endpoint
+app.post('/generate-image', async (req, res) => {
+    const { prompt, category, subCategory } = req.body;
+    
+    try {
+        const styleSettings = dbManager.getStyleSettings(category, subCategory);
+        const fullPrompt = prompt + styleSettings.suffix;
+
+        const response = await fetch(
+            "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.HF_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    inputs: fullPrompt,
+                    parameters: {
+                        num_inference_steps: styleSettings.settings.steps,
+                        guidance_scale: styleSettings.settings.guidance_scale,
+                        negative_prompt: styleSettings.settings.negative_prompt
+                    }
+                })
+            }
+        );
+
+        console.log("API Response status:", response.status);
+        console.log("API Response headers:", response.headers);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+        }
+
+        const buffer = await response.buffer();
+        console.log("Received buffer size:", buffer.length);
+
+        const base64Image = buffer.toString('base64');
+        console.log("Base64 string length:", base64Image.length);
+
+        console.log("Image generated successfully");
+        res.json({ 
+            success: true,
+            message: 'Image generated successfully',
+            image_data: `data:image/jpeg;base64,${base64Image}`
         });
 
-        if (!response.ok) throw new Error(`API call failed: ${response.statusText}`);
-        
-        const data = await response.json();
-        const imageUrl = data.generated_images[0]; // Adjust this path based on API response
-
-        // Send the generated image URL to the frontend
-        res.status(200).json({ message: `Generated image for prompt: "${augmentedPrompt}"`, image_url: imageUrl });
     } catch (error) {
         console.error('Error generating image:', error);
-        res.status(500).json({ message: 'Error generating image' });
+        res.status(500).json({ 
+            success: false,
+            error: error.message 
+        });
     }
 });
 
 app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+    const frontendPath = path.join(__dirname, 'Frontend');
+    console.log('Server running at http://localhost:' + port);
+    console.log('Frontend directory path:', frontendPath);
+    console.log('Frontend directory exists:', require('fs').existsSync(frontendPath));
+    if (require('fs').existsSync(frontendPath)) {
+        console.log('Contents of Frontend directory:', require('fs').readdirSync(frontendPath));
+    }
 });
