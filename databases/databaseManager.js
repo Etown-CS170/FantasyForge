@@ -62,6 +62,16 @@ class DatabaseManager {
         }
         return this.databases.genres.movie; // default to movie style
     }
+
+    async searchMovie(title) {
+        try {
+            const movie = await this.databases.movies.searchMovie(title);
+            return movie;
+        } catch (error) {
+            console.error('Error getting movie:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = new DatabaseManager(); 

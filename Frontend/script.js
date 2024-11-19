@@ -100,4 +100,11 @@ async function generateImage() {
 
 document.addEventListener('DOMContentLoaded', () => {
     loadCategories();
+});
+
+// Add genre selection handler
+document.getElementById('imageGenre').addEventListener('change', function(e) {
+    const selectedGenre = e.target.value;
+    const genreSettings = genres[selectedGenre];
+    // Update your image generation settings accordingly
 }); 

@@ -3,13 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Generator</title>
+    <title>Fantasy Forge</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="logo-container logo-left">
+        <img src="./images/sleeperlogo.png" alt="Left Logo">
+    </div>
+
+    <div class="logo-container logo-right">
+        <img src="./images/NFLlogo.png" alt="Right Logo">
+    </div>
+
     <div class="container">
-        <h1>Image Generator</h1>
+        <h1>Fantasy Forge</h1>
         <input type="text" id="promptInput" placeholder="Enter your prompt">
+        <div class="genre-select-container">
+            <select class="genre-select" id="imageGenre">
+                <option value="realistic">Realistic</option>
+                <option value="anime">Anime</option>
+                <option value="sports">Sports</option>
+                <option value="movie">Movie</option>
+                <option value="fantasy">Fantasy</option>
+                <option value="cartoon">Cartoon</option>
+                <option value="digital_art">Digital Art</option>
+                <option value="oil_painting">Oil Painting</option>
+                <option value="watercolor">Watercolor</option>
+                <option value="pixel_art">Pixel Art</option>
+                <option value="comic">Comic</option>
+                <option value="3d_render">3D Render</option>
+            </select>
+        </div>
         <button onclick="generateImage()">Generate Image</button>
         <div id="loading" style="display: none;">
             Generating image... This may take a few minutes.
