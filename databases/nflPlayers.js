@@ -1,7 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const fs = require('fs');
-
+// All Cursor AI generated to search ESPN everytime an NFL players name is user prompted so that the code stays up to date and gets accurate teams, position, jersey numbers, and player looks every year
 class NFLPlayersDatabase {
     constructor() {
         this.players = {

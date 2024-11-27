@@ -1,3 +1,4 @@
+// All Cursor AI generated to be able to get different types of image generation
 const genres = {
     anime: {
         suffix: ", anime style art, high quality, detailed character design",

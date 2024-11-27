@@ -1,7 +1,7 @@
 const nflPlayers = require('./nflPlayers');
 const movies = require('./movies');
 const genres = require('./genres');
-
+// All Cursor AI generated to be able to help the code search through each of the databases easier
 class DatabaseManager {
     constructor() {
         this.databases = {

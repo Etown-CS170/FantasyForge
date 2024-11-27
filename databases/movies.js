@@ -1,7 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const fs = require('fs');
-
+//All Cursor AI generated to be able to search the web for a user prompted movie or character
 class MovieDatabase {
     constructor() {
         this.movies = {

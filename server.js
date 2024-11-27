@@ -9,6 +9,7 @@ const dbManager = require('./databases/databaseManager');
 const app = express();
 const port = 3000;
 const apiKey = process.env.HF_API_KEY;
+//Cursor AI generated error log
 if (!apiKey) {
     console.error('ERROR: HF_API_KEY is not set in .env file');
     process.exit(1);
@@ -18,7 +19,7 @@ if (!apiKey) {
 app.use(cors());
 app.use(express.json());
 
-// Debug logging middleware
+//Cursor AI generated error log
 app.use((req, res, next) => {
     console.log(`${req.method} request to ${req.url}`);
     next();
@@ -27,14 +28,14 @@ app.use((req, res, next) => {
 // Serve static files from Frontend directory
 app.use(express.static(path.join(__dirname, 'Frontend')));
 
-// Root route
+// Root route -  Cursor AI generated
 app.get('/', (req, res) => {
     const indexPath = path.join(__dirname, 'Frontend', 'index.html');
     console.log('Serving index.html from:', indexPath);
     res.sendFile(indexPath);
 });
 
-// Catch-all route to redirect back to index.html
+// Catch-all route to redirect back to index.html - Cursor AI generated
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'Frontend', 'index.html'));
 });
@@ -42,7 +43,7 @@ app.get('*', (req, res) => {
 // Configure multer for file uploads
 const upload = multer({ dest: 'uploads/' });
 
-// Add model loading status check
+// Add model loading status check - Cursor AI generated with human additions
 async function query(data) {
     const response = await fetch(
         "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
@@ -59,7 +60,7 @@ async function query(data) {
     return result;
 }
 
-// Add status check endpoint
+// Add status check endpoint - Cursor AI generated with human additions
 app.get('/api/status', async (req, res) => {
     try {
         const response = await fetch(
@@ -76,25 +77,25 @@ app.get('/api/status', async (req, res) => {
     }
 });
 
-// Get all categories
+// Get all categories - Cursor AI generated
 app.get('/api/categories', (req, res) => {
     res.json(dbManager.getCategories());
 });
 
-// Get subcategories for a category
+// Get subcategories for a category - Cursor AI generated
 app.get('/api/categories/:category', (req, res) => {
     const subcategories = dbManager.getSubcategories(req.params.category);
     res.json(subcategories);
 });
 
-// Search endpoint
+// Search endpoint - Cursor AI generated
 app.get('/api/search', (req, res) => {
     const { q, category } = req.query;
     const results = dbManager.search(q, category);
     res.json(results);
 });
 
-// Update the image generation endpoint
+// Update the image generation endpoint - Cursor AI generated with little human additions
 app.post('/generate-image', async (req, res) => {
     const { prompt, category, subCategory } = req.body;
     

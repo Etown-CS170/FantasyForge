@@ -1,5 +1,5 @@
 let currentCategory = null;
-
+// Cursor AI generated all of these functions which helps make calls to the server and other files to do functions like loading the category, search the database,show and use the results from the web scrape search, and to finally make the call to the API to generate the image
 async function loadCategories() {
     try {
         const response = await fetch('/api/categories');
